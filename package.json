@@ -1,0 +1,32 @@
+{
+  "name": "capturethefluff",
+  "version": "1.0.0",
+  "description": "Team vs Team vs Team game created for Comfy Sponsors Stream January 2020!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/instafluff/CaptureTheFluff.git"
+  },
+  "keywords": [
+    "Instafluff",
+    "Team",
+    "Game",
+    "Stream",
+    "Comfy",
+    "Sponsors",
+    "January",
+    "2020"
+  ],
+  "author": "Instafluff",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/instafluff/CaptureTheFluff/issues"
+  },
+  "homepage": "https://github.com/instafluff/CaptureTheFluff#readme",
+  "dependencies": {
+    "webwebweb": "^1.1.10"
+  }
+}

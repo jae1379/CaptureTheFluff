@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<link href="https://fonts.googleapis.com/css?family=Bubblegum+Sans" rel="stylesheet">
+
+    <title>Capture the Fluff!</title>
+  </head>
+  <body>
+    <div id="unicorn-display"></div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+	<script src="web/pinkfluffyunicorn.min.js"></script>
+	<script src="web/tinycolor.js"></script>
+	<script>
+	const numBases = 3;
+	let isGameRunning = false;
+	let fluffs = [];
+	let bases = [];
+	let suddenDeathText = null;
+	let winnerText = null;
+	let players = {};
+	let timer = 0;
+	let hideTimer = null;
+	let isSuddenDeath = false;
+	let suddenDeathOptions = [];
+
+	function shuffleTheFluffles() {
+		let keys = Array.from( Array( numBases ).keys() );
+		keys.sort( ( a, b ) => Math.random() - 0.5 );
+		console.log( keys );
+		fluffs.forEach( ( f, i ) => {
+			f.position.x = 64 + keys[ i ] * 70;
+			f.base = keys[ i ];
+		} );
+	}
+
+	function hideAll() {
+		winnerText.visible = false;
+		suddenDeathText.visible = false;
+		bases.forEach( x => x.visible = false );
+		fluffs.forEach( x => x.animations.happy.visible = false );
+	}
+
+	function startGame( minutes = 2 ) {
+		clearTimeout( hideTimer );
+		hideTimer = null;
+		hideAll();
+		isGameRunning = true;
+		isSuddenDeath = false;
+		timer = minutes * 1000 * 60;
+		players = {};
+		suddenDeathOptions = [];
+		shuffleTheFluffles();
+		bases.forEach( x => x.visible = true );
+		fluffs.forEach( x => x.animations.happy.visible = true );
+	}
+
+	function endGame() {
+		let votes = {};
+		for( let i = 0; i < numBases; i++ ) {
+			votes[ i ] = 0;
+		};
+		Object.keys( players ).forEach( x => votes[ players[ x ] ] = 1 + ( votes[ players[ x ] ] || 0 ) );
+		// Check for ties
+		let max = Math.max( ...Object.keys( votes ).map( x => votes[ x ] ) );
+		let topVotes = Object.keys( votes ).filter( x => votes[ x ] === max ).map( x => parseInt( x ) );
+		// console.log( votes, topVotes );
+		if( topVotes.length === 1 ) {
+			// WINNAR
+			let winnar = topVotes[ 0 ];
+			bases.forEach( ( x, i ) => x.visible = i === winnar );
+			fluffs.forEach( ( x, i ) => x.animations.happy.visible = x.base === winnar );
+			hideTimer = setTimeout( hideAll, 10000 );
+			isSuddenDeath = false;
+			suddenDeathText.visible = false;
+			winnerText.visible = true;
+			isGameRunning = false;
+		}
+		else {
+			// WE HAZ TIE
+			suddenDeathOptions = topVotes;
+			bases.forEach( ( x, i ) => x.visible = topVotes.includes( i ) );
+			fluffs.forEach( ( x, i ) => x.animations.happy.visible = topVotes.includes( x.base ) );
+			suddenDeathMode();
+		}
+	}
+
+	function suddenDeathMode() {
+		isSuddenDeath = true;
+		suddenDeathText.visible = true;
+		// console.log( "SUDDEN DEATH MODE" );
+	}
+
+	function Init() {
+		Unicorn.Load( {
+			"fluff1": "web/fluff-left.png",
+			"fluff2": "web/fluff-stand.png",
+			"fluff3": "web/fluff-right.png",
+		} );
+
+		suddenDeathText = Unicorn.AddText( "suddentext", "SUDDEN DEATH!", 32 + 70 * numBases / 2, 32, {
+			fontFamily: 'Bubblegum Sans',
+			fontSize: 32,
+			fontWeight: 'bold',
+			fill: "#ff0000",
+			lineJoin: "round",
+			stroke: "#000000",
+			strokeThickness: 6
+		} );
+		suddenDeathText.anchor.set( 0.5 );
+		suddenDeathText.visible = false;
+
+		winnerText = Unicorn.AddText( "winnertext", "WINNER!", 32 + 70 * numBases / 2, 32, {
+			fontFamily: 'Bubblegum Sans',
+			fontSize: 32,
+			fontWeight: 'bold',
+			fill: "#ffff00",
+			lineJoin: "round",
+			stroke: "#000000",
+			strokeThickness: 6
+		} );
+		winnerText.anchor.set( 0.5 );
+		winnerText.visible = false;
+
+		for( let i = 0; i < numBases; i++ ) {
+			let text = Unicorn.AddText( "base_" + i, i + 1, 64 + 70 * i, 64 + 64, {
+				fontFamily: 'Bubblegum Sans',
+				fontSize: 32,
+				fontWeight: 'bold',
+				fill: "#000000",
+				lineJoin: "round",
+				stroke: "#ffffff",
+				strokeThickness: 6
+			} );
+			text.anchor.set( 0.5 );
+			text.visible = false;
+			bases.push( text );
+		}
+
+		for( let i = 0; i < 3; i++ ) {
+			let fluff = Unicorn.AddObject( "fluff", {
+				type: "rectangle",
+				x: 64 + 70 * i, y: 64,
+				width: 64, height: 64,
+				isStatic: true,
+				animations: {
+				  "happy": {
+					  framerate: 16/60,
+					  frames: [ "fluff1", "fluff2", "fluff3" ],
+					  loop: true
+				  },
+			    },
+			});
+			let color = tinycolor( "#ff00ff" );
+			color.spin( 100 * i );
+			fluff.animations.happy.tint = PIXI.utils.string2hex( color.toHexString() );
+			fluff.animations.happy.visible = false;
+			// console.log( fluff );
+			fluffs.push( fluff );
+		}
+
+		shuffleTheFluffles();
+	}
+
+	function Update( timestamp, timeDiffInMs ) {
+	  // Add Update Loop
+	  if( timer > 0 ) {
+		  timer -= timeDiffInMs;
+		  if( timer <= 0 ) {
+			  endGame();
+		  }
+	  }
+	}
+
+	function OnChatCommand( user, command, message, flags, extra ) {
+		switch( command ) {
+		case "capturethefluff":
+		case "capture":
+			if( !isGameRunning && flags.broadcaster || flags.mod ) {
+				startGame( parseFloat( message || 3 ) );
+			}
+			break;
+		case "endthefluff":
+		case "end":
+			if( isGameRunning && flags.broadcaster || flags.mod ) {
+				endGame();
+			}
+			break;
+		}
+	}
+
+	function OnChatMessage( user, message, flags, self, extra ) {
+		if( isGameRunning ) {
+			if( !isNaN( message ) ) {
+				let number = parseInt( message );
+				if( 0 < number && number <= numBases ) {
+					if( isSuddenDeath ) {
+						if( suddenDeathOptions.includes( number ) ) {
+							players[ ".tiebreaker" ] = number - 1;
+							endGame();
+						}
+					}
+					else {
+						players[ user ] = number - 1;
+					}
+				}
+			}
+		}
+	}
+
+	window.addEventListener('load', () => {
+	  Unicorn.Create( "unicorn-display", {
+		width: 1280,
+		height: 720,
+		// background: "#000000",// "transparent",
+		background: "transparent",
+		init: Init,
+		update: Update,
+		channel: "Instafluff",
+		onCommand: OnChatCommand,
+		onChat: OnChatMessage,
+		// screenWalls: false // Default: true
+		// gravity: { x: 0, y: 0.5 } // Default: { x: 0, y: 1 }
+	  });
+	});
+	</script>
+  </body>
+</html>
